@@ -10,5 +10,8 @@ work/
 # Release artifacts are built by the GitHub release workflow.
 dist/
 
+# Local video compression experiments.
+assets/compressed-previews/
+
 # Local agent/editor settings.
 .claude/

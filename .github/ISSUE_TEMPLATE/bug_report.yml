@@ -1,0 +1,72 @@
+name: Bug report
+description: Report something that is broken or behaving incorrectly.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include enough detail to reproduce the issue.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+      placeholder: The summary skill fails to register a child note when...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the exact commands or actions that reproduce the problem.
+      placeholder: |
+        1. Install plugin version ...
+        2. Run `/summary ...`
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead? Include error messages, screenshots, or logs if useful.
+    validations:
+      required: true
+  - type: input
+    id: zotero_version
+    attributes:
+      label: Zotero version
+      placeholder: 9.0.2
+  - type: input
+    id: plugin_version
+    attributes:
+      label: Plugin version
+      placeholder: 0.0.1
+  - type: dropdown
+    id: ai_cli
+    attributes:
+      label: AI CLI
+      options:
+        - OpenAI Codex CLI
+        - Claude Code
+        - Google Gemini CLI
+        - Other
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, Poppler availability, and any relevant setup details.
+      placeholder: macOS 15, Python 3.12, Poppler installed with Homebrew
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Anything else that may help diagnose the issue.

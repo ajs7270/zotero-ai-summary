@@ -16,10 +16,8 @@
 It is built for researchers who already use Zotero and want their AI agent's paper-reading output to become durable Zotero notes instead of loose Markdown files.
 
 <p align="center">
-  <video src="assets/preview.mp4" controls muted playsinline width="720"></video>
+  <img src="assets/preview.png" alt="AI Summary for Zotero preview" width="720" />
 </p>
-
-<p align="center"><em><a href="assets/preview.mp4">Watch the full demo</a></em></p>
 
 ---
 
@@ -29,14 +27,12 @@ Before using the skills, the **Zotero plugin must be installed and enabled**. On
 
 > **Recommended CLI.** `/summary` and `/pinpoint-lesson` work across Claude Code, Codex CLI, and Gemini CLI, but **Codex CLI or Claude Code are recommended** for more reliable long-form instruction following and Zotero note registration.
 
-<p align="center">
-  <img src="assets/preview.png" alt="Invoking /summary in Claude Code with a PDF path" width="720" />
-</p>
-
 ```text
 /summary          <PDF-path | Zotero-paper-title | citation-key> [language: <language>]
 /pinpoint-lesson  <PDF-path | Zotero-paper-title | citation-key> [language: <language>]
 ```
+
+https://github.com/user-attachments/assets/5f3215e5-6c31-4567-afde-f24433388fc5
 
 Examples:
 
