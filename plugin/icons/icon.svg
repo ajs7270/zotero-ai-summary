@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Rotated paper sheet with highlight bars and a highlighter pen lying diagonally across the top -->
+  <g transform="rotate(-8 512 512)">
+    <!-- Paper sheet -->
+    <rect x="232" y="172" width="560" height="700" rx="18" ry="18"
+          fill="#fafaf6" stroke="#2a2a2a" stroke-width="14"
+          stroke-linejoin="round"/>
+
+    <!-- Highlight bars (marker ink) -->
+    <!-- Title row: cream, full width -->
+    <rect x="282" y="430" width="460" height="60" rx="6" ry="6"
+          fill="#f5e6c4" fill-opacity="0.85"/>
+    <!-- Body row 1: sage, slightly shorter -->
+    <rect x="282" y="540" width="380" height="60" rx="6" ry="6"
+          fill="#b9d8b3" fill-opacity="0.85"/>
+    <!-- Body row 2: coral, shortest -->
+    <rect x="282" y="650" width="290" height="60" rx="6" ry="6"
+          fill="#e89d7d" fill-opacity="0.85"/>
+  </g>
+
+  <!-- Highlighter pen, diagonal across upper portion, pointing down-right toward bars -->
+  <!-- Pen built upright then rotated 35 degrees, positioned over the page top -->
+  <g transform="translate(560 360) rotate(125)">
+    <!-- Pen body (lavender) -->
+    <rect x="-58" y="-220" width="116" height="300" rx="14" ry="14"
+          fill="#d4c5e8" stroke="#2a2a2a" stroke-width="10"
+          stroke-linejoin="round"/>
+    <!-- Cap band separator -->
+    <rect x="-58" y="-150" width="116" height="14"
+          fill="#2a2a2a"/>
+    <!-- Pen cap (deep slate) at the top/back -->
+    <rect x="-58" y="-220" width="116" height="70" rx="14" ry="14"
+          fill="#2a2a2a"/>
+    <!-- Tip ferrule (slate) -->
+    <rect x="-46" y="80" width="92" height="34"
+          fill="#2a2a2a" stroke="#2a2a2a" stroke-width="6"
+          stroke-linejoin="round"/>
+    <!-- Chisel tip (cream) -->
+    <polygon points="-46,114 46,114 24,168 -24,168"
+             fill="#f5e6c4" stroke="#2a2a2a" stroke-width="10"
+             stroke-linejoin="round"/>
+  </g>
+</svg>

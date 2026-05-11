@@ -1,0 +1,14 @@
+.DS_Store
+*.pyc
+__pycache__/
+
+# Local/generated paper workspaces and Zotero debug databases.
+work/
+.work/
+.history/
+
+# Release artifacts are built by the GitHub release workflow.
+dist/
+
+# Local agent/editor settings.
+.claude/

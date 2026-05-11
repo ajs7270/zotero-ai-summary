@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from manifest
+        id: meta
+        run: |
+          version=$(python3 -c "import json;print(json.load(open('plugin/manifest.json'))['version'])")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build xpi
+        run: bash build.sh
+
+      - name: Pack skill tarball
+        run: |
+          mkdir -p dist
+          tar -czf dist/skill-${{ steps.meta.outputs.version }}.tar.gz skill
+
+      - name: Generate update.json
+        run: |
+          python3 - <<'PY'
+          import json
+          version = json.load(open('plugin/manifest.json'))['version']
+          out = {
+            "addons": {
+              "ai-summary@local": {
+                "updates": [
+                  {
+                    "version": version,
+                    "update_link": f"https://github.com/${{ github.repository }}/releases/download/v{version}/zotero-ai-summary-{version}.xpi",
+                    "applications": {
+                      "zotero": {"strict_min_version": "9.0"}
+                    }
+                  }
+                ]
+              }
+            }
+          }
+          open('dist/update.json', 'w').write(json.dumps(out, indent=2))
+          PY
+
+      - name: Also publish a stable filename
+        run: |
+          cp dist/zotero-ai-summary-${{ steps.meta.outputs.version }}.xpi dist/zotero-ai-summary.xpi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zotero-ai-summary-dist
+          path: dist/
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/zotero-ai-summary-${{ steps.meta.outputs.version }}.xpi
+            dist/zotero-ai-summary.xpi
+            dist/skill-${{ steps.meta.outputs.version }}.tar.gz
+            dist/update.json
+          generate_release_notes: true
