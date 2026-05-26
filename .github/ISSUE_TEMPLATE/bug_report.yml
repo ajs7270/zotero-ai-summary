@@ -7,6 +7,7 @@ body:
     attributes:
       value: |
         Thanks for reporting a bug. Please include enough detail to reproduce the issue.
+        Privacy warning: do not attach private PDFs or paste confidential paper text. If you share PDF contents with a cloud AI model, assume every word becomes public knowledge the moment you submit the prompt.
   - type: textarea
     id: summary
     attributes:

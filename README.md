@@ -27,6 +27,8 @@ Before using the skills, the **Zotero plugin must be installed and enabled**. On
 
 > **Recommended CLI.** `/summary` and `/pinpoint-lesson` work across Claude Code, Codex CLI, and Gemini CLI, but **Codex CLI or Claude Code are recommended** for more reliable long-form instruction following and Zotero note registration.
 
+> **Privacy warning.** If you send a PDF or extracted paper text to a cloud AI model, assume every word in that PDF becomes public knowledge the moment you submit the prompt. Do not use these skills with confidential, embargoed, private, or otherwise sensitive papers unless you understand and accept that risk.
+
 ```text
 /summary          <PDF-path | Zotero-paper-title | citation-key> [language: <language>]
 /pinpoint-lesson  <PDF-path | Zotero-paper-title | citation-key> [language: <language>]
