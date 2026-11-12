@@ -41,8 +41,8 @@ Language resolution:
 ## Pipeline
 
 1. Identify the target Zotero item.
-   - For a PDF path: verify the file exists, then locate the existing parent item via the zotero-mcp server. If the PDF is not in Zotero yet, prompt the user to add it.
-   - For a title or citation key: search via zotero-mcp.
+   - For a PDF path: verify the file exists, then locate the existing parent item via a connected Zotero MCP server. If no connector is available, use an explicitly supplied user-library parent key; do not guess a key. If the PDF is not in Zotero yet, prompt the user to add it.
+   - For a title or citation key: search via a connected Zotero MCP server.
 2. Extract evidence from the PDF.
    - Run `scripts/prepare_pdf_artifacts.py <pdf> --out <work-dir> --render-pages`.
    - Use `pdftotext` output as the primary text source.
@@ -51,6 +51,8 @@ Language resolution:
 4. Compose the summary in Markdown following the structure below.
 5. Run the summary quality check below before registration.
 6. Register the note via `scripts/zotero_register_note.py` to the local plugin endpoint `http://localhost:23119/aisummary/note`.
+
+Registration failures: a nonzero exit or nonempty `imageFailures` is not a complete success. If the response includes a saved note key, repair that note with the protocol's PUT endpoint instead of retrying POST and creating a duplicate. Verify the saved note's title, highlights, math carriers, and embedded attachment keys through the Zotero connector when available.
 
 ## Note structure
 
@@ -78,6 +80,7 @@ Aim for a note that fits a single scrollable read; if the paper warrants more de
 
 Before registration, revise the Markdown until it passes these checks:
 
+- Check reported numbers against the source table or passage. Label derived values, verify the arithmetic, and keep comparisons within the same task and measurement setting.
 - Include at least two README-palette highlight spans in a normal summary: one Cream Yellow span for the central claim or takeaway, and one Sage span for the main confirmed result.
 - If the paper has an important limitation, failed case, or anti-pattern, include one Coral span in `## 🔍 Limitations`.
 - If the summary contains a compact "why this works" explanation, use one Lavender span for that fundamental insight.
@@ -90,7 +93,7 @@ Before registration, revise the Markdown until it passes these checks:
 
 The H1 is `Summary (<your model name>)` where the model name is the AI model executing the skill — for example `Summary (Claude Opus 4.7)`, `Summary (GPT-5)`, `Summary (Gemini 2.5 Pro)`. Use the human-readable display name with version, exactly as the model would self-identify (not the API id like `claude-opus-4-7`). Do not put the paper title or any subject keyword in the parentheses.
 
-The H1 stays in this canonical English form **regardless of the user's request language**. Do not localise `Summary` or the model name. Other section headings translate per the language rule below; the H1 does not.
+The H1 stays in this canonical English form **regardless of the user's request language**. Do not localise `Summary` or the model name. Section headings remain in the canonical English form below; prose follows the language rule.
 
 ## Language rule
 

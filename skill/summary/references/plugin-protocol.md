@@ -13,7 +13,7 @@ Sanity check. Always returns 200.
 ```json
 {
   "ok": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "zoteroVersion": "9.0.2",
   "converter": { "name": "markdown-it", "version": "14.1.0" }
 }
@@ -101,3 +101,9 @@ The plugin lives in `~/zotero-ai-summary/plugin/`:
 - `locale/en-US/strings.ftl` — fluent string for the plugin name.
 
 Build: `bash build.sh` at the repo root produces `dist/zotero-ai-summary-<version>.xpi`. Bump `manifest.json:version` to make Zotero accept a re-install.
+
+## Image import failures and updates
+
+A missing or unreadable local image is listed in `imageFailures`; `ok: true` alone means the note was saved, not that every image was imported. The Python registration helpers print the saved note key and exit with status 3 for partial image imports. Repair that existing note with PUT instead of repeating POST.
+
+A PUT that imports new images moves unreferenced old image children to the trash after saving the new body. Existing `data-attachment-key` images still referenced by the final HTML remain attached, including updates that mix preserved keys and newly imported files. Body-only repairs that import no new files preserve existing image children.

@@ -3,11 +3,12 @@
 
 Reads markdown from a file (or stdin), POSTs it to ``/aisummary/note``
 with the supplied parent item key, title, and tags, and prints the resulting
-JSON response. Exits non-zero on HTTP error.
+JSON response. Exits non-zero on HTTP errors or partial image imports.
 
 The plugin must be installed and Zotero must be running. The plugin's
-health endpoint is checked first; on any failure the script prints a
-diagnostic and exits with status 2.
+health endpoint is checked first; on failure the script prints a diagnostic
+and exits non-zero. A saved note with image failures exits with status 3;
+its key is still printed so callers can repair it without creating duplicates.
 
 Usage:
     python3 zotero_register_note.py \\
@@ -122,6 +123,12 @@ def main() -> int:
     if not response.get("ok") and response.get("error"):
         raise SystemExit(f"AI Summary for Zotero rejected the note: {response.get('error')}")
     print(json.dumps(response, ensure_ascii=False, indent=2))
+    if response.get("imageFailures"):
+        sys.stderr.write(
+            f"Note {response.get('key', '(unknown key)')} was saved with image failures. "
+            "Repair the existing note; do not blindly POST again.\n"
+        )
+        return 3
     return 0 if response.get("ok") else 1
 
 

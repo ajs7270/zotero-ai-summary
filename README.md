@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://www.zotero.org"><img alt="Zotero target version" src="https://img.shields.io/badge/Zotero-9%2B-green?style=flat-square&logo=zotero&logoColor=CC2936" /></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" /></a>
-  <a href="https://github.com/ajs7270/zotero-ai-summary/releases"><img alt="Plugin version" src="https://img.shields.io/badge/plugin-0.0.1-blue?style=flat-square" /></a>
+  <a href="https://github.com/ajs7270/zotero-ai-summary/releases"><img alt="Plugin version" src="https://img.shields.io/badge/plugin-0.0.2-blue?style=flat-square" /></a>
   <a href="#usage"><img alt="Skills" src="https://img.shields.io/badge/skills-summary%20%7C%20pinpoint--lesson-purple?style=flat-square" /></a>
 </p>
 
@@ -25,7 +25,7 @@ It is built for researchers who already use Zotero and want their AI agent's pap
 
 Before using the skills, the **Zotero plugin must be installed and enabled**. Once the plugin is loaded and the skills are installed, call either skill from your AI CLI:
 
-> **Recommended CLI.** `/summary` and `/pinpoint-lesson` work across Claude Code, Codex CLI, and Gemini CLI, but **Codex CLI or Claude Code are recommended** for more reliable long-form instruction following and Zotero note registration.
+The skills can be used from Codex, Claude Code, Gemini CLI, and Google Antigravity. Ask the agent to use `summary` or `pinpoint-lesson`, or use your client's skill picker. Claude Code and Antigravity expose `/summary` and `/pinpoint-lesson`; skill invocation syntax can differ between clients. See the [validation record](docs/VALIDATION.md) for the models and versions actually tested.
 
 > **Privacy warning.** If you send a PDF or extracted paper text to a cloud AI model, assume every word in that PDF becomes public knowledge the moment you submit the prompt. Do not use these skills with confidential, embargoed, private, or otherwise sensitive papers unless you understand and accept that risk.
 
@@ -59,6 +59,8 @@ The agent extracts evidence from the PDF, drafts the Markdown note from the sele
 
 The note is always registered under an existing Zotero item. If you pass a local PDF that is not already in Zotero, the agent will ask you to add it first and then retry the lookup.
 
+Looking up papers by title, citation key, or PDF requires a connected Zotero MCP server that can search metadata and read attachments. The installer does not configure that connection. If you already know the eight-character parent item key in your personal Zotero library, you can supply it explicitly and use the registration helper without MCP. Group libraries are not supported by the plugin endpoint.
+
 ---
 
 ## Installation
@@ -86,6 +88,9 @@ The script is interactive. It can install the skills for:
 | Claude Code | `~/.claude/skills/{summary,pinpoint-lesson}/` |
 | OpenAI Codex CLI | `~/.codex/skills/{summary,pinpoint-lesson}/` |
 | Google Gemini CLI | `~/.gemini/skills/{summary,pinpoint-lesson}/` |
+| Google Antigravity | `~/.gemini/config/skills/{summary,pinpoint-lesson}/` |
+
+Antigravity uses a different global skills directory from Gemini CLI. The installer includes a separate `antigravity` target, following the [official Antigravity skill locations](https://antigravity.google/docs/skills).
 
 Zotero 9 requires plugin installation through the GUI: `Tools` -> `Plugins` -> gear menu -> **Install Plugin From File...** -> select the downloaded `.xpi`.
 
@@ -95,6 +100,15 @@ To install only one skill:
 AI_SUMMARY_SKILLS=summary           bash install.sh
 AI_SUMMARY_SKILLS=pinpoint-lesson   bash install.sh
 ```
+
+For a specific client or a local checkout:
+
+```bash
+AI_SUMMARY_CLIS=antigravity bash install.sh
+AI_SUMMARY_LOCAL="$PWD" AI_SUMMARY_CLIS="codex claude antigravity" bash install.sh
+```
+
+`AI_SUMMARY_REF` accepts a branch, tag, or commit. `AI_SUMMARY_SKILLS_ROOT` redirects skill installation to `<root>/<client>/<skill>` for isolated testing. `AI_SUMMARY_PLUGIN_DIR` selects where the installer keeps the XPI for manual installation.
 
 ### Manual install
 
@@ -110,6 +124,10 @@ AI_SUMMARY_SKILLS=pinpoint-lesson   bash install.sh
 
    cp -R skill/summary          ~/.gemini/skills/summary
    cp -R skill/pinpoint-lesson  ~/.gemini/skills/pinpoint-lesson
+
+   mkdir -p ~/.gemini/config/skills
+   cp -R skill/summary          ~/.gemini/config/skills/summary
+   cp -R skill/pinpoint-lesson  ~/.gemini/config/skills/pinpoint-lesson
    ```
 
 3. Install Poppler and Python 3:
@@ -138,8 +156,23 @@ Both skills use the same Zotero plugin, PDF extraction helpers, image pipeline, 
 - **Zotero-native notes.** Results are saved as child notes under matched Zotero items.
 - **Paper figures included.** Raster figures are extracted with `pdfimages`; vector-only pages can be rendered with `pdftoppm`.
 - **Math rendering.** Inline LaTeX (`$...$`) is converted for Zotero's KaTeX note renderer.
-- **Portable skills.** The same skills install into Claude Code, OpenAI Codex CLI, and Google Gemini CLI.
+- **Portable skills.** The same skills install into Claude Code, OpenAI Codex, Google Gemini CLI, and Google Antigravity.
 - **Self-contained plugin.** The converter uses bundled `markdown-it` 14.x. No companion plugin or web API credentials are required.
+
+---
+
+## Color palette
+
+Use background highlights sparingly in note Markdown:
+
+| Color | Hex | Meaning |
+|---|---|---|
+| Cream Yellow | `#f5e6c4` | Central claim or takeaway |
+| Coral | `#e89d7d` | Limitation or failure mode |
+| Sage | `#b9d8b3` | Confirmed result |
+| Lavender | `#d4c5e8` | Fundamental insight |
+
+For example: `<span style="background-color: #b9d8b3">confirmed result</span>`.
 
 ---
 
@@ -153,6 +186,10 @@ Both skills use the same Zotero plugin, PDF extraction helpers, image pipeline, 
 
 **The CLI does not show `/summary` or `/pinpoint-lesson`.** Confirm the skill folders are in the right CLI directory, then restart the CLI.
 
+**The registration helper exits with status 3.** The note was saved, but one or more local images could not be imported. Inspect `imageFailures` and the returned note key. Fix the image paths and update that note with `PUT /aisummary/note/<key>`; repeating POST creates another note.
+
+**A model is unavailable.** A provider's `model_not_found` or account-access error occurs before the skill runs. Select a model available in that client/account and record its actual name and reasoning level when reporting a bug.
+
 **Zotero version is too old.** The plugin requires Zotero 9.0+.
 
 ---
@@ -160,18 +197,22 @@ Both skills use the same Zotero plugin, PDF extraction helpers, image pipeline, 
 ## Development
 
 ```bash
+npm ci
+npm test
+
 bash build.sh
 # -> dist/zotero-ai-summary-X.Y.Z.xpi
 
 curl http://localhost:23119/aisummary/health
 ```
 
-The plugin source is plain JavaScript with no transpile step. `markdown-it.min.js` is vendored in `plugin/lib/vendor/`.
+The plugin source is plain JavaScript with no transpile step. `markdown-it.min.js` is vendored in `plugin/lib/vendor/`. Node.js 20.19+ and LinkeDOM are used only for development tests; the installed plugin does not depend on Node.js. Tests cover conversion, image import/update, registration errors, and isolated installer behavior. CI also builds the XPI.
 
 Further details:
 
 - [HTTP protocol](docs/PROTOCOL.md)
 - [Plugin design](docs/DESIGN.md)
+- [Validation record](docs/VALIDATION.md)
 
 ---
 

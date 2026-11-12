@@ -35,12 +35,14 @@ Language resolution:
 
 ## Pipeline
 
-1. Identify the target Zotero item via zotero-mcp, the same way as the summary skill.
+1. Identify the target Zotero item via a connected Zotero MCP server, the same way as the summary skill.
 2. Extract evidence with `scripts/prepare_pdf_artifacts.py <pdf> --out <work-dir> --render-pages`. Use `pdftotext` output as the primary text source.
 3. Read existing Zotero context, including any prior summary note. The pin-point lesson is allowed to coexist with a summary note, but should not duplicate it.
 4. Compose the lesson in Markdown following the structure below.
 5. Run the **quality gate** below before registration. If any gate fails, revise the Markdown first; do not register a thin note.
 6. Register the note via `scripts/zotero_register_note.py` to `http://localhost:23119/aisummary/note`.
+
+Registration failures: a nonzero exit or nonempty `imageFailures` is not a complete success. If the response includes a saved note key, repair that note with the protocol's PUT endpoint instead of retrying POST and creating a duplicate. Verify the saved note's title, highlights, math carriers, and embedded attachment keys through the Zotero connector when available.
 
 ## Note structure
 
@@ -57,7 +59,7 @@ For Zotero editor stability and readability, do not start an H2 section directly
 5. `## 🤔 Why This Paper Exists` — *what unresolved tensions in the field forced this paper into being?* Open by stating that the problem comes from N (typically 2–4) accumulated limitations, then one bold-prefixed paragraph per limitation. Close with the paper's prescription mapping each contribution to one limitation.
 6. `## 📊 Visuals and Tables First` — *which numeric evidence should the reader keep in view before the prose?* Bring forward the paper's most important tables and compact evidence. Prefer original extracted table images or page-rendered table artifacts over Markdown retyping when the table is from the paper; use Markdown only for small derived comparison tables that you create yourself. Do **not** collect figures here for later explanation; non-table figures belong at the exact moment in Method, Experimental Procedure, or Results where the prose needs them.
 7. `## 🧠 Key Concepts and Terms` — *what vocabulary must be internalised before reading the rest?* Define each technical term once. Spell out each abbreviation on first use.
-8. `## 🧮 Mathematical Preliminaries` — *what equations are the **base** on which the contributions stand?* Open with one sentence: "with these N equations in mind, every contribution becomes mathematically obvious — it is clear which cost / norm / divergence each design touches." Define every symbol on first appearance. This section should be lean but not shallow: include every equation later referenced in Method or Fundamental Why.
+8. `## 🧮 Mathematical Preliminaries` — *what equations are the **base** on which the contributions stand?* Open with a concrete explanation of which equations support the later method and why each is needed. Resolve any example placeholders to the actual paper. Define every symbol on first appearance. This section should be lean but not shallow: include every equation later referenced in Method or Fundamental Why.
 9. `## 🌱 Idea Provenance` — *where did each contribution descend from, and **why was now** the moment it became viable?* Open with: "the design choices look like historical necessity once you see the lineage." For each contribution: prior work + paper citation, prior gap, the technical conditions that made adoption viable now, and the paper's specific adaptation.
 10. `## 🛠️ Method` — *how does each contribution actually work, derived step by step from the preliminaries?* Show where the design touches the cost equation, the spectral-norm bound, the divergence direction, the information bottleneck, the control invariant, or the optimisation invariant. Include the actual equations, hyperparameters, algorithms, and design tables needed to reproduce the argument.
 11. `## ⚙️ Experimental Procedure` — *what is the exact comparison the paper claims, and what evidence supports it?* Datasets, baselines, metrics, training schedule, evaluation protocol. Include any non-trivial evaluation procedure such as Codeforces rating expectation. State which steps the paper does *not* specify — explicit acknowledgement of unsourced detail.
@@ -68,7 +70,7 @@ For Zotero editor stability and readability, do not start an H2 section directly
 16. `## 🧩 Insight Quizzes` — *did the reader actually grok it?* At least five non-trivial quizzes with answers. Use plain `Q1.` and `A1.` paragraphs. Do not use `<details>` or `<summary>` tags.
 17. `## 🚀 What to Learn Next` — *what follow-ups deepen the understanding?* Recommended papers, open questions, discussion threads.
 
-Every quantitative claim should carry a number; if the paper itself does not state one, derive it from the paper's hyperparameters in one line. Abstract claims slide off the reader, numbers stick.
+Every quantitative claim should carry a number and trace to a source table or passage. Label derived values and show the arithmetic; compare like tasks and measurement settings. If the paper does not support a value or derivation, state what is missing rather than supplying an estimate as a reported fact. Abstract claims slide off the reader, numbers stick.
 
 There is **no decorative gallery section** and no "figures first, explain later" section. The `## 📊 Visuals and Tables First` section is mainly for original extracted table images or page-rendered table artifacts plus compact numeric evidence. Every non-table figure belongs next to the paragraph that needs it — see "Image rules" below for placement.
 

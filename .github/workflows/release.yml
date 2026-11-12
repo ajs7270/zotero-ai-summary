@@ -14,6 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - run: npm test
 
       - name: Read version from manifest
         id: meta
@@ -27,7 +36,7 @@ jobs:
       - name: Pack skill tarball
         run: |
           mkdir -p dist
-          tar -czf dist/skill-${{ steps.meta.outputs.version }}.tar.gz skill
+          tar --exclude='__pycache__' --exclude='*.pyc' --exclude='.DS_Store' -czf dist/skill-${{ steps.meta.outputs.version }}.tar.gz skill
 
       - name: Generate update.json
         run: |

@@ -25,6 +25,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -65,11 +66,11 @@ def build_manifest(
     text_path: Path,
     metadata: dict[str, str],
     page_render_dpi: int,
+    image_paths: list[Path],
+    page_paths: list[Path],
 ) -> dict[str, object]:
     image_dir = output_dir / "images"
     page_dir = output_dir / "pages"
-    image_paths = sorted(image_dir.glob("*.png"))
-    page_paths = sorted(page_dir.glob("*.png"))
     return {
         "pdf": str(pdf_path),
         "text": str(text_path),
@@ -93,6 +94,19 @@ def main() -> int:
     parser.add_argument("--page-dpi", type=int, default=150, help="DPI for full-page renders (default 150)")
     parser.add_argument("--render-page-range", default=None, help="Optional 'first-last' range to limit page render (e.g. '1-12')")
     args = parser.parse_args()
+    if args.page_dpi <= 0:
+        parser.error("--page-dpi must be a positive integer")
+    page_range: tuple[int, int] | None = None
+    if args.render_page_range:
+        try:
+            first, last = (int(value) for value in args.render_page_range.split("-", 1))
+        except ValueError:
+            parser.error("--render-page-range must use positive 'first-last' values, for example '1-12'")
+        if first < 1 or last < first:
+            parser.error("--render-page-range must start at 1 or later and end at or after the first page")
+        page_range = (first, last)
+    if not args.image_prefix or Path(args.image_prefix).name != args.image_prefix or args.image_prefix in {".", ".."}:
+        parser.error("--image-prefix must be a filename prefix without directory components")
 
     pdf_path = args.pdf.expanduser().resolve()
     if not pdf_path.is_file():
@@ -109,31 +123,45 @@ def main() -> int:
     image_dir.mkdir(parents=True, exist_ok=True)
     page_dir.mkdir(parents=True, exist_ok=True)
 
-    text_path = output_dir / "fulltext.txt"
-    run_command([pdftotext_path, "-layout", "-enc", "UTF-8", str(pdf_path), str(text_path)])
-
-    metadata: dict[str, str] = {}
-    if pdfinfo_path:
-        metadata = parse_pdfinfo(run_command([pdfinfo_path, str(pdf_path)]).stdout)
-
-    image_prefix_path = image_dir / args.image_prefix
-    run_command([pdfimages_path, "-png", str(pdf_path), str(image_prefix_path)])
-
-    if args.render_pages:
-        page_prefix = page_dir / "page"
-        cmd = [pdftoppm_path, "-png", "-r", str(args.page_dpi)]
-        if args.render_page_range:
-            try:
-                first, last = args.render_page_range.split("-", 1)
-            except ValueError as exc:
-                raise SystemExit("--render-page-range must use 'first-last', for example '1-12'.") from exc
-            cmd += ["-f", first, "-l", last]
-        cmd += [str(pdf_path), str(page_prefix)]
-        run_command(cmd)
-
-    manifest = build_manifest(pdf_path, output_dir, text_path, metadata, args.page_dpi)
     manifest_path = output_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    text_path = output_dir / "fulltext.txt"
+    # Extract in a fresh directory so reusing --out cannot add a previous PDF's
+    # figures, manual crops, or pages outside the current range to the manifest.
+    # Publish only this run's files; leave unrelated user-created files intact.
+    with tempfile.TemporaryDirectory(prefix=".extract-", dir=output_dir) as temporary:
+        staging = Path(temporary)
+        staged_images = staging / "images"
+        staged_pages = staging / "pages"
+        staged_images.mkdir()
+        staged_pages.mkdir()
+        staged_text = staging / "fulltext.txt"
+        run_command([pdftotext_path, "-layout", "-enc", "UTF-8", str(pdf_path), str(staged_text)])
+
+        metadata: dict[str, str] = {}
+        if pdfinfo_path:
+            metadata = parse_pdfinfo(run_command([pdfinfo_path, str(pdf_path)]).stdout)
+
+        run_command([pdfimages_path, "-png", str(pdf_path), str(staged_images / args.image_prefix)])
+        if args.render_pages:
+            cmd = [pdftoppm_path, "-png", "-r", str(args.page_dpi)]
+            if page_range:
+                cmd += ["-f", str(page_range[0]), "-l", str(page_range[1])]
+            cmd += [str(pdf_path), str(staged_pages / "page")]
+            run_command(cmd)
+
+        image_paths = [image_dir / path.name for path in sorted(staged_images.glob("*.png"))]
+        page_paths = [page_dir / path.name for path in sorted(staged_pages.glob("*.png"))]
+        manifest = build_manifest(
+            pdf_path, output_dir, text_path, metadata, args.page_dpi, image_paths, page_paths,
+        )
+        staged_manifest = staging / "manifest.json"
+        staged_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        for directory, destination in ((staged_images, image_dir), (staged_pages, page_dir)):
+            for path in directory.iterdir():
+                path.replace(destination / path.name)
+        staged_text.replace(text_path)
+        staged_manifest.replace(manifest_path)
 
     print(json.dumps({"manifest": str(manifest_path), **manifest}, ensure_ascii=False, indent=2))
     return 0

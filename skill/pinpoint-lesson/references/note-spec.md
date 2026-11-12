@@ -28,11 +28,7 @@ Separate each major section with a Markdown horizontal rule line `---`. Use it a
 
 For Zotero editor stability and readability, do not start an H2 section directly with a list, image, table, or display equation. Put one short prose sentence after every H2 before any block artifact. This is especially important when a table has been omitted or replaced: avoid a structure like `## Heading` immediately followed by `- bullet`. Use an introductory sentence, then the list/table/image/equation.
 
-1. `# <title>` — H1 title.
-   - **Default format for AI-model papers**: `# Pin Point Lesson (<model name>)` where `<model name>` is the model the paper introduces, with version, exactly as cited in the paper title or abstract. Examples: `# Pin Point Lesson (<ModelName-Version>)`, `# Pin Point Lesson (<Model Family>)`.
-   - **For a model series** (one tech report covering multiple variants): `# Pin Point Lesson (<model series>)`.
-   - **For non-model papers** (theory, surveys, benchmarks, methods): `# Pin Point Lesson (<short subject>)` — e.g. `# Pin Point Lesson (Lottery Ticket Hypothesis)`, `# Pin Point Lesson (HumanEval)`.
-   - The user may override the format. The H1 must be the first non-empty line; the Zotero plugin uses it as the note title fallback.
+1. H1 title: `# Pin Point Lesson (<your model name>)`. Use the human-readable name of the AI model executing the skill, regardless of the paper's subject. Do not put the paper's model or topic in parentheses. The H1 must be the first non-empty line. The canonical section headings and title rules are maintained in [SKILL.md](../SKILL.md#note-structure).
 2. **Citation block** (immediately under H1, plain paragraphs — no heading):
    - Bold-prefixed citation line: title, authors, venue/year, page count when known.
    - One overview paragraph that names the lessons and the *frame* (e.g. "Every contribution traces back to the cost equations of standard attention; the lessons below cluster around how to bend those equations.").
@@ -40,12 +36,12 @@ For Zotero editor stability and readability, do not start an H2 section directly
 4. `## 🧭 Core Research Questions`
    - Compact table with 2–3 RQs and the paper's direct answers.
    - Use these RQs as the backbone for the rest of the note.
-5. `## 🤔✨ Why This Paper Exists: Research Gap`
+5. `## 🤔 Why This Paper Exists`
    - Explain the prior limitation, missing evidence, or unresolved tension that motivated the paper.
    - Connect the gap to the paper's proposed method or experiment design.
 6. `## 📊 Visuals and Tables First`
-   - Embed the most useful figures/tables right at the top (rules in §"Image Rules" below).
-   - Recreate small numeric tables in markdown so the reader can scan without flipping back to the PDF.
+   - Bring forward original table images or rendered table artifacts and compact numeric evidence. Keep non-table figures beside the method or result they explain.
+   - Use Markdown for tiny or derived comparisons; preserve important original table layouts.
    - Always caption each embedded image with the original figure number and page (e.g. `![Figure 3 — CSA structure (p.9)](...)`).
 7. `## 🧠 Key Concepts and Terms`
    - Define each difficult term plainly, one row per term.
@@ -144,7 +140,7 @@ Apply S. Keshav's "How to Read a Paper" as the note-construction checklist:
 ## Math Rules
 
 - **Inline LaTeX is the only reliable form** in Zotero's note editor. Use `$...$` for any expression with subscripts, superscripts, fractions, sums, or matrix notation.
-- **Do not use block math `$$...$$` directly**. The plugin auto-rewrites it to `<span class="math">$\displaystyle ...$</span>` so KaTeX still renders it in display style, but the cleanest input is to keep all math in single-`$` form. If you want a "displayed" equation, place it on its own paragraph as `$\displaystyle ...$`.
+- **Block math `$$...$$` is supported**. The plugin auto-rewrites it to `<span class="math">$\displaystyle ...$</span>` for Zotero. Prefer single-`$` input for simple expressions. If you want a "displayed" equation, place it on its own paragraph as `$\displaystyle ...$`.
 - **Equation-title protocol** (apply to every non-trivial equation):
   1. Start with a short bold title naming the equation's role, e.g. `**Attention cost.**`, `**Flow-matching interpolation.**`, or `**Memory horizon.**`.
   2. Introduce the variable names on the next line *before* the equation, e.g. "Let $H \in \mathbb{R}^{n \times d}$ be the input ($n$ tokens, $d$ hidden dim)."

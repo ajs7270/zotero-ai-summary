@@ -154,13 +154,17 @@ function sanitizeNoteHTML(html) {
   // replace each math span with a sentinel-bracketed token so it travels
   // through DOMParser as one opaque text run, then restore it after sanitise.
   let mathPlaceholders = [];
+  // Use a prefix absent from this document so ordinary paper text (including
+  // identifiers such as MATH0) can never be mistaken for a placeholder.
+  let mathPlaceholderPrefix = "AI_SUMMARY_MATH_TOKEN_";
+  while (source.includes(mathPlaceholderPrefix)) mathPlaceholderPrefix += "X";
   source = source.replace(/<span class="math">[\s\S]*?<\/span>/g, function (match) {
     mathPlaceholders.push(match);
-    return "MATH" + (mathPlaceholders.length - 1) + "";
+    return mathPlaceholderPrefix + (mathPlaceholders.length - 1) + "_END";
   });
 
   if (typeof DOMParser === "undefined") {
-    return restoreMathPlaceholders(source, mathPlaceholders);
+    return restoreMathPlaceholders(source, mathPlaceholders, mathPlaceholderPrefix);
   }
 
   let doc = new DOMParser().parseFromString("<body>" + source + "</body>", "text/html");
@@ -214,12 +218,12 @@ function sanitizeNoteHTML(html) {
   }
 
   walk(doc.body);
-  return restoreMathPlaceholders(doc.body.innerHTML, mathPlaceholders);
+  return restoreMathPlaceholders(doc.body.innerHTML, mathPlaceholders, mathPlaceholderPrefix);
 }
 
-function restoreMathPlaceholders(html, placeholders) {
-  return String(html || "").replace(/MATH(\d+)/g, function (_, idx) {
-    return placeholders[parseInt(idx, 10)] || "";
+function restoreMathPlaceholders(html, placeholders, prefix) {
+  return String(html || "").replace(new RegExp(prefix + "(\\d+)_END", "g"), function (match, idx) {
+    return placeholders[parseInt(idx, 10)] || match;
   });
 }
 

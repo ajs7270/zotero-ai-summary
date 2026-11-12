@@ -45,9 +45,12 @@ function registerUpdateNote() {
         // body-only repair. Do not trash existing child images; doing so would
         // break the preserved keys and can also hang while the open note editor
         // is observing a large note. Only remove old image children after a
-        // real image re-import from local paths.
+        // real image re-import from local paths, and preserve any old keys
+        // still referenced by a mixed update containing old and new images.
         if (imageResult.importedKeys.length > 0) {
+          let referencedImageKeys = getReferencedImageKeys(rescue.html);
           for (let oldKey of oldImageKeys) {
+            if (referencedImageKeys.has(oldKey)) continue;
             let oldChild = await Zotero.Items.getByLibraryAndKeyAsync(note.libraryID, oldKey);
             if (!oldChild || oldChild.deleted) continue;
             removedImageKeys.push(oldKey);
@@ -70,4 +73,20 @@ function registerUpdateNote() {
       }
     }
   });
+}
+
+function getReferencedImageKeys(html) {
+  let keys = new Set();
+  if (typeof DOMParser !== "undefined") {
+    let doc = new DOMParser().parseFromString("<body>" + html + "</body>", "text/html");
+    for (let image of doc.querySelectorAll("img[data-attachment-key]")) {
+      keys.add(image.getAttribute("data-attachment-key"));
+    }
+    return keys;
+  }
+  for (let image of String(html || "").match(/<img\b[^>]*>/gi) || []) {
+    let match = image.match(/\bdata-attachment-key\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+    if (match) keys.add(match[1] || match[2] || match[3] || "");
+  }
+  return keys;
 }

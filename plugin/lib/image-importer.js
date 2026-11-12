@@ -15,7 +15,7 @@ async function absorbImages(html, noteItem) {
     if (!absPath) continue;
 
     try {
-      if (!await IOUtils.exists(absPath)) continue;
+      if (!await IOUtils.exists(absPath)) throw new Error("Local image file not found");
       let blob = await readFileAsImageBlob(absPath);
       let attachmentItem = await Zotero.Attachments.importEmbeddedImage({
         blob,
@@ -90,17 +90,13 @@ async function absorbImagesWithRegex(html, noteItem) {
     }
     else {
       try {
-        if (!await IOUtils.exists(absPath)) {
-          parts.push(tag);
-        }
-        else {
-          let blob = await readFileAsImageBlob(absPath);
-          let attachmentItem = await Zotero.Attachments.importEmbeddedImage({ blob, parentItemID: noteItem.id });
-          importedKeys.push(attachmentItem.key);
-          let altMatch = tag.match(/\balt=(["'])(.*?)\1/i);
-          let alt = altMatch ? ' alt="' + escapeHTML(decodeHTMLAttribute(altMatch[2])).replace(/"/g, "&quot;") + '"' : "";
-          parts.push("<img" + alt + ' data-attachment-key="' + attachmentItem.key + '">');
-        }
+        if (!await IOUtils.exists(absPath)) throw new Error("Local image file not found");
+        let blob = await readFileAsImageBlob(absPath);
+        let attachmentItem = await Zotero.Attachments.importEmbeddedImage({ blob, parentItemID: noteItem.id });
+        importedKeys.push(attachmentItem.key);
+        let altMatch = tag.match(/\balt=(["'])(.*?)\1/i);
+        let alt = altMatch ? ' alt="' + escapeHTML(decodeHTMLAttribute(altMatch[2])).replace(/"/g, "&quot;") + '"' : "";
+        parts.push("<img" + alt + ' data-attachment-key="' + attachmentItem.key + '">');
       }
       catch (e) {
         failures.push({ src: originalSrc, path: absPath, error: String(e) });

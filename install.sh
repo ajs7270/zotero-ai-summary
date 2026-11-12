@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AI Summary for Zotero installer — Zotero plugin + summary/pinpoint-lesson skills
-# for Claude Code, OpenAI Codex CLI, and Google Gemini CLI.
+# for Claude Code, OpenAI Codex CLI, Google Gemini CLI, and Antigravity.
 #
 # Usage:
 #   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/ajs7270/zotero-ai-summary/main/install.sh)"
@@ -10,10 +10,12 @@
 #
 # Environment overrides:
 #   AI_SUMMARY_REPO              GitHub slug (default: ajs7270/zotero-ai-summary)
-#   AI_SUMMARY_REF               Branch/tag (default: main)
+#   AI_SUMMARY_REF               Branch/tag/commit (default: main)
 #   AI_SUMMARY_LOCAL             Path to a local checkout (skips network download)
-#   AI_SUMMARY_CLIS              Space-separated list (claude codex gemini), bypasses prompt
+#   AI_SUMMARY_CLIS              Space-separated list (claude codex gemini antigravity), bypasses prompt
 #   AI_SUMMARY_SKILLS            Comma-separated list (summary,pinpoint-lesson), default both
+#   AI_SUMMARY_SKILLS_ROOT       Optional isolated root; installs into <root>/<cli>/<skill>
+#   AI_SUMMARY_PLUGIN_DIR        Optional persistent directory for the plugin download
 #   AI_SUMMARY_SKIP_PLUGIN       Set to 1 to skip Zotero plugin install
 #   AI_SUMMARY_SKIP_DEPS_CHECK   Set to 1 to skip Poppler / Python check
 set -euo pipefail
@@ -24,6 +26,7 @@ LOCAL_DIR="${AI_SUMMARY_LOCAL:-}"
 SKIP_PLUGIN="${AI_SUMMARY_SKIP_PLUGIN:-0}"
 SKIP_DEPS="${AI_SUMMARY_SKIP_DEPS_CHECK:-0}"
 SKILLS_RAW="${AI_SUMMARY_SKILLS:-summary,pinpoint-lesson}"
+SKILLS_ROOT="${AI_SUMMARY_SKILLS_ROOT:-}"
 
 bold() { printf '\033[1m%s\033[0m\n' "$*" >&2; }
 ok()   { printf '\033[32m✓\033[0m %s\n' "$*" >&2; }
@@ -46,13 +49,14 @@ choose_clis() {
   echo "  1) Claude Code       (~/.claude/skills/<skill>/)" >&2
   echo "  2) OpenAI Codex CLI  (~/.codex/skills/<skill>/)" >&2
   echo "  3) Google Gemini CLI (~/.gemini/skills/<skill>/)" >&2
+  echo "  4) Google Antigravity (~/.gemini/config/skills/<skill>/)" >&2
   echo "  a) All of the above" >&2
   echo "  s) Skip skill install" >&2
   read -r -p "Enter choices separated by spaces (e.g. '1 2'), or 'a' / 's' [a]: " reply || true
   reply="${reply:-a}"
   case "$reply" in
     s|S)      printf '' ;;
-    a|A|all)  printf 'claude codex gemini' ;;
+    a|A|all)  printf 'claude codex gemini antigravity' ;;
     *)
       local out=()
       for c in $reply; do
@@ -60,7 +64,9 @@ choose_clis() {
           1) out+=("claude") ;;
           2) out+=("codex") ;;
           3) out+=("gemini") ;;
-          claude|codex|gemini) out+=("$c") ;;
+          4) out+=("antigravity") ;;
+          claude|codex|gemini|antigravity) out+=("$c") ;;
+          *) err "Unknown CLI choice: $c"; return 1 ;;
         esac
       done
       printf '%s' "${out[*]}"
@@ -75,10 +81,15 @@ split_skills() {
 
 skill_dir_for() {
   local cli="$1" skill="$2"
+  if [[ -n "$SKILLS_ROOT" ]]; then
+    echo "$SKILLS_ROOT/$cli/$skill"
+    return
+  fi
   case "$cli" in
     claude) echo "$HOME/.claude/skills/$skill" ;;
     codex)  echo "$HOME/.codex/skills/$skill" ;;
     gemini) echo "$HOME/.gemini/skills/$skill" ;;
+    antigravity) echo "$HOME/.gemini/config/skills/$skill" ;;
     *)      err "Unknown CLI: $cli"; return 1 ;;
   esac
 }
@@ -92,13 +103,13 @@ ensure_workdir() {
   SOURCE_DIR="$(mktemp -d)"
   trap 'rm -rf "$SOURCE_DIR"' EXIT
   bold "Downloading AI Summary for Zotero $REF from $REPO ..."
-  curl -fsSL "https://github.com/$REPO/archive/refs/heads/$REF.tar.gz" \
+  curl -fsSL "https://github.com/$REPO/archive/$REF.tar.gz" \
     | tar -xz -C "$SOURCE_DIR" --strip-components=1
   ok "Downloaded into $SOURCE_DIR"
 }
 
 install_skill_for() {
-  local cli="$1" skill="$2" target
+  local cli="$1" skill="$2" target source_real target_real
   local source_path="$SOURCE_DIR/skill/$skill"
   if [[ ! -d "$source_path" ]]; then
     err "Skill source missing at $source_path"
@@ -106,6 +117,22 @@ install_skill_for() {
   fi
   target="$(skill_dir_for "$cli" "$skill")"
   mkdir -p "$(dirname "$target")"
+  source_real="$(cd "$source_path" && pwd -P)"
+  if [[ -d "$target" ]]; then
+    target_real="$(cd "$target" && pwd -P)"
+  else
+    target_real="$(cd "$(dirname "$target")" && pwd -P)/$(basename "$target")"
+  fi
+  if [[ "$source_real" == "$target_real" ]]; then
+    ok "Skill '$skill' is already at its source path; no copy needed ($cli)."
+    return
+  fi
+  case "$source_real/" in
+    "$target_real/"*) err "Refusing to replace a skill destination containing its source: $target"; return 1 ;;
+  esac
+  case "$target_real/" in
+    "$source_real/"*) err "Refusing to copy a skill into its own source: $target"; return 1 ;;
+  esac
   rm -rf "$target"
   cp -R "$source_path" "$target"
   ok "Installed skill '$skill' into $target ($cli)"
@@ -120,12 +147,21 @@ install_plugin() {
     warn "Skipped Zotero plugin install."
     return
   fi
-  local xpi=""
+  local xpi="" source_xpi="" plugin_dir="${AI_SUMMARY_PLUGIN_DIR:-}"
+  if [[ -z "$plugin_dir" ]]; then
+    plugin_dir="$(mktemp -d "${TMPDIR:-/tmp}/zotero-ai-summary-plugin.XXXXXX")"
+  else
+    mkdir -p "$plugin_dir"
+  fi
+  # Keep the GUI handoff file outside SOURCE_DIR, which is deleted on exit
+  # after an archive download. Do not register this directory with the trap.
+  plugin_dir="$(cd "$plugin_dir" && pwd -P)"
+  xpi="$plugin_dir/zotero-ai-summary.xpi"
   if compgen -G "$SOURCE_DIR/dist/zotero-ai-summary-*.xpi" >/dev/null; then
-    xpi="$(ls -t "$SOURCE_DIR"/dist/zotero-ai-summary-*.xpi | head -1)"
+    source_xpi="$(ls -t "$SOURCE_DIR"/dist/zotero-ai-summary-*.xpi | head -1)"
+    if [[ ! "$source_xpi" -ef "$xpi" ]]; then cp "$source_xpi" "$xpi"; fi
   else
     bold "Downloading the latest plugin release ..."
-    xpi="$(mktemp -t ai-summary).xpi"
     curl -fsSL "https://github.com/$REPO/releases/latest/download/zotero-ai-summary.xpi" -o "$xpi" \
       || { err "Could not download zotero-ai-summary.xpi from $REPO releases"; return 1; }
   fi
@@ -204,14 +240,27 @@ DONE
 
 main() {
   bold "AI Summary for Zotero installer"
+  CLIS_RAW="$(choose_clis)"
+  SKILLS=()
+  while IFS= read -r s; do SKILLS+=("$s"); done < <(split_skills "$SKILLS_RAW")
+  # Validate every selection before replacing any existing installed skill.
+  for cli in $CLIS_RAW; do
+    case "$cli" in
+      claude|codex|gemini|antigravity) ;;
+      *) err "Unknown CLI: $cli"; return 1 ;;
+    esac
+  done
+  for skill in "${SKILLS[@]}"; do
+    case "$skill" in
+      summary|pinpoint-lesson) ;;
+      *) err "Unknown skill: $skill (expected summary or pinpoint-lesson)"; return 1 ;;
+    esac
+  done
   ensure_workdir
 
-  CLIS_RAW="$(choose_clis)"
   if [[ -z "$CLIS_RAW" ]]; then
     warn "No CLI selected - skill install skipped."
   else
-    SKILLS=()
-    while IFS= read -r s; do SKILLS+=("$s"); done < <(split_skills "$SKILLS_RAW")
     if [[ ${#SKILLS[@]} -eq 0 ]]; then
       warn "AI_SUMMARY_SKILLS is empty - no skills will be installed."
     else
